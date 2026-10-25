@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>社労士2027 学習ナビ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>社労士2027 学習ナビ</h1>
+    <div class="sub" id="courseName"></div>
+  </div>
+  <div class="countdown">
+    <div class="cd-main"><span id="daysLeft">—</span><small>日</small></div>
+    <div class="cd-sub">本試験まで（<span id="examDate"></span>）</div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="today">今日やること</button>
+  <button class="tab" data-tab="week">今週</button>
+  <button class="tab" data-tab="progress">進捗</button>
+  <button class="tab" data-tab="plan">全体計画</button>
+  <button class="tab" data-tab="settings">設定</button>
+</nav>
+
+<main>
+  <!-- 今日 -->
+  <section id="tab-today" class="panel active">
+    <div class="card">
+      <div class="row between">
+        <h2 id="todayTitle">今日</h2>
+        <div class="muted" id="todayPhase"></div>
+      </div>
+      <div id="todayMilestone" class="milestone hidden"></div>
+      <div id="todayTasks" class="tasks"></div>
+      <p class="hint">チェックは「この週の中で完了した」の意味です。今日やった分は下の学習記録に時間を入れてください。</p>
+    </div>
+
+    <div class="card">
+      <h2>今日の学習記録</h2>
+      <div class="row wrap">
+        <label>学習時間（分）<input type="number" id="logMinutes" min="0" step="5" placeholder="例: 90"></label>
+        <label>科目
+          <select id="logSubject"></select>
+        </label>
+        <label class="grow">メモ<input type="text" id="logMemo" placeholder="やったこと・つまずき"></label>
+        <button id="logAdd" class="primary">記録する</button>
+      </div>
+      <div id="todayLogs" class="logs"></div>
+    </div>
+
+    <div class="card">
+      <h2>今週の時間</h2>
+      <div class="meter"><div id="weekMeterBar"></div></div>
+      <div class="row between muted">
+        <span id="weekHoursText"></span>
+        <span id="weekTargetText"></span>
+      </div>
+      <div id="streakText" class="muted"></div>
+    </div>
+  </section>
+
+  <!-- 今週 -->
+  <section id="tab-week" class="panel">
+    <div class="card">
+      <div class="row between">
+        <button id="weekPrev">◀ 前の週</button>
+        <h2 id="weekTitle"></h2>
+        <button id="weekNext">次の週 ▶</button>
+      </div>
+      <div class="muted" id="weekPhase"></div>
+      <div id="weekTasks" class="tasks"></div>
+      <div class="row between muted">
+        <span id="weekPlanHours"></span>
+        <button id="weekToday" class="link">今週に戻る</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>この週の学習記録</h2>
+      <div id="weekLogs" class="logs"></div>
+    </div>
+  </section>
+
+  <!-- 進捗 -->
+  <section id="tab-progress" class="panel">
+    <div class="card">
+      <h2>全体進捗</h2>
+      <div class="big" id="overallPct">0%</div>
+      <div class="meter"><div id="overallBar"></div></div>
+      <div class="muted" id="overallText"></div>
+      <div class="muted" id="paceText"></div>
+    </div>
+    <div class="card">
+      <h2>フェーズ別</h2>
+      <div id="phaseProgress"></div>
+    </div>
+    <div class="card">
+      <h2>科目別（タスク完了率）</h2>
+      <div id="subjectProgress"></div>
+    </div>
+    <div class="card">
+      <h2>週別学習時間（実績 vs 目標）</h2>
+      <div id="hoursChart" class="chart"></div>
+    </div>
+  </section>
+
+  <!-- 全体計画 -->
+  <section id="tab-plan" class="panel">
+    <div class="card">
+      <h2>マイルストーン</h2>
+      <ul id="milestones" class="plain"></ul>
+    </div>
+    <div class="card">
+      <h2>42週ロードマップ</h2>
+      <div id="roadmap" class="roadmap"></div>
+      <p class="hint">クリックするとその週に移動します。</p>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="tab-settings" class="panel">
+    <div class="card">
+      <h2>目標</h2>
+      <label>週の目標時間 <input type="number" id="targetHours" min="1" max="40" step="0.5"></label>
+      <button id="saveTarget" class="primary">保存</button>
+    </div>
+    <div class="card">
+      <h2>バックアップ</h2>
+      <p class="muted">進捗と学習記録はこのブラウザの localStorage に保存されています。別の端末やブラウザに移すときはエクスポートしてください。</p>
+      <div class="row wrap">
+        <button id="exportBtn">JSONをエクスポート</button>
+        <label class="file">JSONをインポート<input type="file" id="importFile" accept="application/json"></label>
+        <button id="resetBtn" class="danger">全データを削除</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>計画の更新</h2>
+      <p class="muted">計画は <code>gen_plan.py</code> で生成した <code>plan.js</code> から読み込んでいます。科目の週割りや時間を変えたいときは <code>gen_plan.py</code> を編集して再実行してください（タスクIDが変わらなければチェック状態は引き継がれます）。</p>
+    </div>
+  </section>
+</main>
+
+<script src="plan.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
