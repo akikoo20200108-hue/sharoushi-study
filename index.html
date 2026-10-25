@@ -2,7 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="社労士ナビ">
+<meta name="theme-color" content="#b5451b">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
 <title>社労士2027 学習ナビ</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -30,13 +36,23 @@
   <!-- 今日 -->
   <section id="tab-today" class="panel active">
     <div class="card">
-      <div class="row between">
+      <div class="row between wrap">
         <h2 id="todayTitle">今日</h2>
-        <div class="muted" id="todayPhase"></div>
+        <div class="row">
+          <button id="dayPrev" title="前の日">◀</button>
+          <input type="date" id="dayPick" style="width:auto">
+          <button id="dayNext" title="次の日">▶</button>
+          <button id="dayToday" class="link">今日</button>
+        </div>
       </div>
+      <div class="muted" id="todayPhase"></div>
       <div id="todayMilestone" class="milestone hidden"></div>
       <div id="todayTasks" class="tasks"></div>
-      <p class="hint">チェックは「この週の中で完了した」の意味です。今日やった分は下の学習記録に時間を入れてください。</p>
+      <div class="row between muted" style="margin-top:8px">
+        <span id="dayPlanText"></span>
+        <span id="dayDoneText"></span>
+      </div>
+      <p class="hint">週のタスクを曜日ごとに日割りしています（平日1：土日1.5の重み）。終わったらチェック、実際にかかった時間は下の学習記録へ。</p>
     </div>
 
     <div class="card">
@@ -98,7 +114,7 @@
       <div id="phaseProgress"></div>
     </div>
     <div class="card">
-      <h2>科目別（タスク完了率）</h2>
+      <h2>科目×セクション別</h2>
       <div id="subjectProgress"></div>
     </div>
     <div class="card">
@@ -112,6 +128,10 @@
     <div class="card">
       <h2>マイルストーン</h2>
       <ul id="milestones" class="plain"></ul>
+    </div>
+    <div class="card">
+      <h2>教材一覧</h2>
+      <ul id="materials" class="plain"></ul>
     </div>
     <div class="card">
       <h2>42週ロードマップ</h2>

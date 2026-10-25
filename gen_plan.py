@@ -57,6 +57,55 @@ def part_label(idx, total):
         return "全範囲"
     return ["前半", "後半", "終盤"][idx] if total <= 3 else f"{idx+1}/{total}"
 
+
+# ---- 章データ（肢別過去問集の目次から転記: 章名, 総合講義テキスト開始p, 肢別過去問 開始p） ----
+# text_end / kako_end は各巻の最終ページ（不明なら推定、後で修正）
+CHAPTERS = {
+    "労基": {
+        "text_end": 380,   # ※推定。テキスト最終ページが分かったら修正
+        "kako_end": 122,   # 択一式の最終p（選択式は123〜）
+        "sentaku": (123, 159, "選択式 労基・安衛"),
+        "list": [
+            ("第1章 総則(1) 労働憲章", 11, 2),
+            ("第2章 総則(2) 適用関係・定義等", 41, 12),
+            ("第3章 労働契約", 61, 22),
+            ("第4章 賃金", 121, 38),
+            ("第5章 労働時間、休憩、休日", 159, 64),
+            ("第6章 年次有給休暇", 271, 94),
+            ("第7章 安全及び衛生", 299, 100),
+            ("第8章 年少者", 303, 100),
+            ("第9章 妊産婦等", 321, 104),
+            ("第10章 技能者の養成", 333, 108),
+            ("第11章 災害補償", 337, 108),
+            ("第12章 就業規則", 341, 108),
+            ("第13章 寄宿舎", 353, 118),
+            ("第14章 監督機関", 359, 118),
+            ("第15章 雑則・罰則", 365, 120),
+        ],
+    },
+}
+TEXT_H_PER_WEEK, KAKO_H_PER_WEEK = 6, 4   # 科目1週あたりの標準配分
+
+def q25(x):  # 0.25h 単位に丸め（最低0.25）
+    return max(0.25, round(x * 4) / 4)
+
+def chapter_ranges(sub):
+    """章ごとの (title, text_from, text_to, kako_from, kako_to) を返す。同一開始pの章は次章とまとめる。"""
+    c = CHAPTERS[sub]; L = c["list"]; out = []
+    i = 0
+    while i < len(L):
+        j = i
+        # テキスト/過去問の開始pが次章と同じ（ページ数0）なら連結
+        while j + 1 < len(L) and (L[j+1][1] == L[i][1] or L[j+1][2] == L[i][2]):
+            j += 1
+        t_from = L[i][1]; k_from = L[i][2]
+        t_to = (L[j+1][1] - 1) if j + 1 < len(L) else c["text_end"]
+        k_to = (L[j+1][2] - 1) if j + 1 < len(L) else c["kako_end"]
+        title = L[i][0] if i == j else L[i][0].split(" ")[0] + "〜" + L[j][0].split(" ")[0] + " " + "・".join(x[0].split(" ", 1)[1] for x in L[i:j+1])
+        out.append((title, t_from, t_to, k_from, max(k_from, k_to)))
+        i = j + 1
+    return out
+
 # ---- フェーズ2: 2周目の科目割当 ----
 P2_ROUND2 = {
     20: ["労基", "安衛"], 21: ["労災", "雇用"], 22: ["徴収", "労一"],
@@ -82,6 +131,7 @@ def week_range(w):
 from collections import Counter
 sub_weeks = Counter(P1.values())
 sub_idx = Counter()
+chapter_queue = {}
 
 for w in range(1, WEEKS + 1):
     s, e = week_range(w)
@@ -94,10 +144,39 @@ for w in range(1, WEEKS + 1):
         if w == 1:
             add(w, "準備", "全科目", "教材の棚卸し・学習導入オリエンテーション資料を読む", 1,
                 "テキスト・肢別過去問集・答練・模試を一覧化。テキストの「改正」アイコンの意味を確認。")
-        add(w, "テキスト", sub, f"総合講義テキスト 通読（{lbl}）", 6,
-            "映像なしのため、テキストの太字・図表・条文を音読しながら読む。1回目は理解優先、完璧を目指さない。")
-        add(w, "肢別", sub, f"肢別過去問集 1周目（{lbl}）", 4,
-            "読んだ範囲に対応する肢を解く。正誤に○×△を付け、解説でテキストの該当ページを確認。")
+        if sub in CHAPTERS:
+            # 章単位: 科目の総時間(週数×標準配分)をページ数比で章に配分し、週に順に詰める
+            if i == 0:
+                rng = chapter_ranges(sub)
+                tp = sum(r[2] - r[1] + 1 for r in rng); kp = sum(r[4] - r[3] + 1 for r in rng)
+                TH, KH = TEXT_H_PER_WEEK * n, KAKO_H_PER_WEEK * n
+                q = []
+                for r in rng:
+                    th = q25(TH * (r[2] - r[1] + 1) / tp); kh = q25(KH * (r[4] - r[3] + 1) / kp)
+                    if th + kh > 4.5:  # 長い章は前半/後半に分割
+                        tm = (r[1] + r[2]) // 2; km = (r[3] + r[4]) // 2
+                        q.append(((r[0] + "（前半）", r[1], tm, r[3], km), q25(th / 2), q25(kh / 2)))
+                        q.append(((r[0] + "（後半）", tm + 1, r[2], km + 1, r[4]), q25(th / 2), q25(kh / 2)))
+                    else:
+                        q.append((r, th, kh))
+                chapter_queue[sub] = q
+            cap = (TEXT_H_PER_WEEK + KAKO_H_PER_WEEK) * (1.3 if i < n - 1 else 9)  # 最終週は残り全部
+            used = 0
+            while chapter_queue[sub] and (used == 0 or used + chapter_queue[sub][0][1] + chapter_queue[sub][0][2] <= cap):
+                (title, tf, tt, kf, kt), th, kh = chapter_queue[sub].pop(0)
+                add(w, "テキスト", sub, f"{title}　テキスト p.{tf}〜{tt}", th,
+                    "太字・図表・条文を音読しながら読む。1回目は理解優先、完璧を目指さない。")
+                add(w, "肢別", sub, f"{title}　肢別過去問 p.{kf}〜{kt}", kh,
+                    "読んだ章の肢を解く。正誤に○×△を付け、解説でテキストの該当ページを確認。")
+                used += th + kh
+            if i == n - 1 and "sentaku" in CHAPTERS[sub]:
+                sf, st, sl = CHAPTERS[sub]["sentaku"]
+                add(w, "肢別", sub, f"{sl}　過去問 p.{sf}〜{st}", 1.5, "選択式は空欄のキーワードをテキストで確認。")
+        else:
+            add(w, "テキスト", sub, f"総合講義テキスト 通読（{lbl}）", 6,
+                "映像なしのため、テキストの太字・図表・条文を音読しながら読む。1回目は理解優先、完璧を目指さない。")
+            add(w, "肢別", sub, f"肢別過去問集 1周目（{lbl}）", 4,
+                "読んだ範囲に対応する肢を解く。正誤に○×△を付け、解説でテキストの該当ページを確認。")
         if i == n - 1 and n > 1:
             add(w, "復習", sub, f"{SUBJECTS[sub]['name']} 間違えた肢の見直し", 1)
         if w >= 2:
@@ -156,7 +235,11 @@ for w in range(1, WEEKS + 1):
         if w == 35:
             add(w, "特訓", "労一", "白書対策（※2027年版の教材を別途入手）", 4,
                 "厚生労働白書・労働経済白書の数字は最新年度版が必須。")
-        if w in (36, 37):
+        if w == 36:
+            add(w, "答練", "全科目", "令和7年度 本試験問題を通し演習（出題形式過去問集 1冊）", 5,
+                "選択式80分＋択一式210分を本番同様に。科目別の基準点割れをチェック。")
+            add(w, "復習", "全科目", "令和7年度問題の復習：間違えた肢をテキストで確認", 3)
+        if w == 37:
             add(w, "復習", "全科目", "選択式対策：テキストの条文・目的条文を音読＆穴埋め自作", 4)
         if w == 37:
             add(w, "その他", "全科目", "模試の受験日を確定（週38）・当日のタイムテーブルを決める", 0.5)
@@ -190,6 +273,19 @@ plan = {
         "start": START.isoformat(), "exam": EXAM.isoformat(),
         "weeks": WEEKS, "targetHoursPerWeek": TARGET_HOURS,
         "course": "アガルート 2026年合格目標 入門総合カリキュラム（フル）／映像講義なし",
+        "materials": [
+            {"name": "基礎講義テキスト（2冊）", "use": "参照用。去年1周済み。科目の全体像を思い出すときに目次を見る"},
+            {"name": "総合講義テキスト（労基／安衛／労災／雇用／徴収／労一／健保／国年／厚年／社一 各1冊）", "use": "フェーズ1の通読、2・3周目の弱点読み直し"},
+            {"name": "肢別過去問集（科目ごと 各1冊、平成28〜令和6年）", "use": "フェーズ1〜3で3周。章ごとにテキストとセット"},
+            {"name": "令和7年 全科目 過去問集（出題形式・1冊）", "use": "第36週に本試験形式で通し演習"},
+            {"name": "過去問マスター答練 テキスト3冊", "use": "第27〜29週（本試験形式・70問）"},
+            {"name": "実力確認答練 問題冊子8冊＋解答用紙8枚＋解答解説1冊", "use": "第20〜27週に週1回"},
+            {"name": "選択式集中特訓講座 テキスト1冊", "use": "第30〜31週"},
+            {"name": "科目横断整理講座 テキスト1冊", "use": "第32〜33週"},
+            {"name": "法改正対策講座 テキスト1冊（2026年版）", "use": "第34週。2027年版の法改正は別途入手が必要"},
+            {"name": "白書対策講座 テキスト1冊（2026年版）", "use": "第35週。白書の数字は2027年版が必要"},
+            {"name": "模擬試験 問題冊子2冊（選択式・択一式）＋解答解説1冊", "use": "第38週に本番時刻で実施"},
+        ],
         "milestones": [
             {"date": "2027-03-14", "label": "フェーズ2開始（2周目＋答練）"},
             {"date": "2027-04-13", "label": "受験申込 開始（例年・要確認）"},
@@ -215,6 +311,9 @@ lines = [f"# {plan['meta']['title']}", "",
 for p in PHASES:
     s = week_range(p["weeks"][0])[0]; e = week_range(p["weeks"][1])[1]
     lines.append(f"- **フェーズ{p['id']} {p['name']}**（第{p['weeks'][0]}〜{p['weeks'][1]}週 / {s}〜{e}）: {p['desc']}")
+lines += ["", "## 教材一覧（教材発送スケジュールより）", ""]
+for m in plan["meta"]["materials"]:
+    lines.append(f"- **{m['name']}** — {m['use']}")
 lines += ["", "## 週別計画", ""]
 for wk in weeks:
     w = wk["week"]

@@ -38,3 +38,12 @@ python C:\Users\akiko\projects\sharoushi-study\gen_plan.py
 - 週10〜15時間（目標12h）。計画上の合計は約430h
 - 映像講義は視聴期限切れのため、テキスト＋肢別過去問集＋答練＋模試で進める
 - 2026年版テキストは2027年試験の法改正・白書に未対応 → 第34〜35週で2027年版の法改正・白書教材を別途入手して対応
+
+## スマホ（iPhone）で使う
+
+GitHub Pages で公開しています: https://akikoo20200108-hue.github.io/sharoushi-study/
+Safariで開き「共有」→「ホーム画面に追加」でアプリのように起動できます。進捗は端末ごとに保存されるため、進捗はiPhoneだけで付ける運用にしてください。
+
+## 更新のしかた（Web画面から）
+
+https://github.com/akikoo20200108-hue/sharoushi-study/upload/main を開き、変更したファイルをドラッグ＆ドロップして「Commit changes」。同名ファイルは上書きされ、1〜2分で公開ページに反映されます。

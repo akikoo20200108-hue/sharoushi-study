@@ -1,0 +1,9 @@
+{
+  "name": "社労士2027 学習ナビ",
+  "short_name": "社労士ナビ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#b5451b",
+  "icons": [{ "src": "icon.png", "sizes": "192x192", "type": "image/png" }]
+}
